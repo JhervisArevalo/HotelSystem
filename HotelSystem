@@ -1,0 +1,159 @@
+#include <iostream>
+#include <string>
+#include <fstream>
+
+using namespace std;
+
+struct Item {
+    string name;
+    double price;
+};
+
+void displayMenu();
+void displayCategory(const string& categoryName, Item items[], int size);
+void processOrder(Item items[], int size, Item orderedItems[], int quantities[], int& itemCount);
+void saveOrder(Item orderedItems[], int quantities[], int itemCount);
+void viewCustomerOrders();
+void handlePayment();
+
+int main() {
+    displayMenu();
+    return 0;
+}
+
+void displayMenu() {
+    Item meals[] = { {"Burger", 5.99}, {"Pizza", 8.49}, {"Pasta", 7.99} };
+    Item drinks[] = { {"Coke", 1.99}, {"Water", 0.99}, {"Juice", 2.49} };
+    Item desserts[] = { {"Cake", 3.49}, {"Ice Cream", 2.99}, {"Pie", 4.49} };
+
+    Item orderedItems[10];
+    int quantities[10], itemCount = 0;
+
+    char mainChoice;
+    do {
+        cout << "\nMain Menu:\n";
+        cout << "[A] Order\n";
+        cout << "[B] Bill out\n";
+        cout << "[C] View Orders\n";
+        cout << "Select an option: ";
+        cin >> mainChoice;
+
+        switch (mainChoice) {
+        case 'A': {
+            char orderChoice;
+            do {
+                cout << "\nSelect a category to order:\n[A] Meals\n[B] Drinks\n[C] Desserts\n[D] Finish Order\n";
+                cout << "Select option: ";
+                cin >> orderChoice;
+
+                switch (orderChoice) {
+                case 'A': processOrder(meals, 3, orderedItems, quantities, itemCount); break;
+                case 'B': processOrder(drinks, 3, orderedItems, quantities, itemCount); break;
+                case 'C': processOrder(desserts, 3, orderedItems, quantities, itemCount); break;
+                case 'D': saveOrder(orderedItems, quantities, itemCount); break;
+                default: cout << "Invalid choice. Try again.\n";
+                }
+            } while (orderChoice != 'D');
+            break;
+        }
+        case 'B':
+            handlePayment();
+            break;
+        case 'C':
+            viewCustomerOrders();
+            break;
+        default:
+            cout << "Invalid choice. Try again.\n";
+        }
+    } while (mainChoice != 'B');
+}
+
+void displayCategory(const string& categoryName, Item items[], int size) {
+    cout << categoryName << " Menu:\n";
+    for (int i = 0; i < size; i++) {
+        cout << i + 1 << ". " << items[i].name << " - $" << items[i].price << endl;
+    }
+}
+
+void processOrder(Item items[], int size, Item orderedItems[], int quantities[], int& itemCount) {
+    if (itemCount >= 10) {
+        cout << "Order limit reached. Cannot add more items.\n";
+        return;
+    }
+    int choice, quantity;
+    displayCategory("Selected", items, size);
+    cout << "Choose an item (1-" << size << "): ";
+    cin >> choice;
+    if (choice < 1 || choice > size) {
+        cout << "Invalid choice. Try again.\n";
+        return;
+    }
+    cout << "Enter quantity: ";
+    cin >> quantity;
+    if (quantity <= 0) {
+        cout << "Invalid quantity. Try again.\n";
+        return;
+    }
+    orderedItems[itemCount] = items[choice - 1];
+    quantities[itemCount++] = quantity;
+}
+
+void saveOrder(Item orderedItems[], int quantities[], int itemCount) {
+    ofstream file("Customer_Orders.txt");
+    if (!file) {
+        cout << "Error saving order.\n";
+        return;
+    }
+    for (int i = 0; i < itemCount; i++) {
+        file << orderedItems[i].name << " " << quantities[i] << " " << orderedItems[i].price << endl;
+    }
+    cout << "Order saved successfully!\n";
+    file.close();
+}
+
+void viewCustomerOrders() {
+    ifstream file("Customer_Orders.txt");
+    if (!file.is_open()) {
+        cout << "No orders found.\n";
+        return;
+    }
+    string line;
+    cout << "\n---- Customer Orders ----\n";
+    while (getline(file, line)) {
+        cout << line << endl;
+    }
+    file.close();
+}
+
+void handlePayment() {
+    ifstream file("Customer_Orders.txt");
+    if (!file) {
+        cout << "No orders found.\n";
+        return;
+    }
+
+    double total = 0;
+    string name;
+    int quantity;
+    double price;
+
+    cout << "\nOrdered Items:\n";
+    while (file >> name >> quantity >> price) {
+        cout << name << " x " << quantity << " - $" << price * quantity << endl;
+        total += price * quantity;
+    }
+    file.close();
+
+    double payment;
+    do {
+        cout << "Total: $" << total << "\nEnter payment amount: $";
+        cin >> payment;
+
+        if (payment >= total) {
+            cout << "Payment successful! Your change is: $" << payment - total << endl;
+        }
+        else {
+            cout << "Insufficient payment. Please try again.\n";
+        }
+    } while (payment < total);
+}
